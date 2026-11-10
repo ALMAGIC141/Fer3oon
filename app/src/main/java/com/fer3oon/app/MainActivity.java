@@ -7,69 +7,36 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.*;
 import android.widget.*;
-import java.util.*;
 
 public class MainActivity extends Activity {
-    LinearLayout root, markets, positions, logs;
-    TextView status, chosen, reason, count;
-    EditText email, apiKey, password;
-    Spinner lot;
-    Handler handler = new Handler();
-
     final String GOLD = "#E8C46A";
     final String BG = "#080808";
     final String CARD = "#191919";
+    TextView status;
 
     int dp(float n) {
         return (int)(n * getResources().getDisplayMetrics().density);
     }
 
-    TextView text(String value, int size, String color) {
+    TextView makeText(String value, int size, String color) {
         TextView t = new TextView(this);
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(Color.parseColor(color));
-        t.setPadding(dp(8), dp(8), dp(8), dp(8));
+        t.setPadding(dp(10), dp(10), dp(10), dp(10));
         return t;
     }
 
-    LinearLayout section(String title) {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(14), dp(12), dp(14), dp(12));
-        box.setBackgroundColor(Color.parseColor(CARD));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            -1, -2
-        );
-        lp.setMargins(0, dp(8), 0, dp(8));
-        root.addView(box, lp);
-        TextView heading = text(title, 19, GOLD);
-        heading.setTypeface(null, Typeface.BOLD);
-        box.addView(heading);
-        return box;
-    }
-
-    EditText field(LinearLayout box, String hint, boolean secret) {
-        EditText e = new EditText(this);
-        e.setSingleLine(true);
-        e.setHint(hint);
-        e.setHintTextColor(Color.GRAY);
-        e.setTextColor(Color.WHITE);
-        e.setTextSize(15);
-        if (secret) e.setInputType(129);
-        box.addView(e, new LinearLayout.LayoutParams(-1, dp(52)));
-        return e;
-    }
-
-    Button button(LinearLayout box, String label, boolean stop, Runnable action) {
+    Button makeButton(String label, String color, Runnable action) {
         Button b = new Button(this);
         b.setText(label);
         b.setTextColor(Color.BLACK);
-        b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
-            Color.parseColor(stop ? "#B83E48" : GOLD)
-        ));
+        b.setTextSize(16);
+        b.setTypeface(null, Typeface.BOLD);
+        b.setBackgroundTintList(
+            android.content.res.ColorStateList.valueOf(Color.parseColor(color))
+        );
         b.setOnClickListener(v -> action.run());
-        box.addView(b, new LinearLayout.LayoutParams(-1, dp(52)));
         return b;
     }
 
@@ -80,97 +47,126 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.BLACK);
 
         ScrollView scroll = new ScrollView(this);
-        root = new LinearLayout(this);
+        LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(14), dp(10), dp(14), dp(18));
+        root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        root.setPadding(dp(18), dp(20), dp(18), dp(20));
         root.setBackgroundColor(Color.parseColor(BG));
         scroll.addView(root);
         setContentView(scroll);
 
-        TextView title = text("👑 Fer3oon", 30, GOLD);
+        TextView title = makeText("👑 Fer3oon", 32, GOLD);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(null, Typeface.BOLD);
         root.addView(title);
 
-        LinearLayout dashboard = section("لوحة Fer3oon الملكية");
-        status = text("الحالة: متوقف", 17, GOLD);
-        dashboard.addView(status);
-
-        markets = new LinearLayout(this);
-        markets.setOrientation(LinearLayout.VERTICAL);
-        dashboard.addView(markets);
-        for (String name : new String[]{"EURUSD", "USDJPY", "GOLD"}) {
-            markets.addView(text(name + "  |  السعر: --  |  الإشارة: --", 16, "#FFFFFF"));
-        }
-
-        chosen = text("السوق المختار: --", 19, GOLD);
-        dashboard.addView(chosen);
-        reason = text("في انتظار تحليل الأسواق", 14, "#C9B987");
-        dashboard.addView(reason);
-
-        LinearLayout account = section("الاتصال بحساب Capital.com DEMO");
-        email = field(account, "البريد الإلكتروني", false);
-        apiKey = field(account, "API Key", true);
-        password = field(account, "كلمة مرور API", true);
-
-        lot = new Spinner(this);
-        String[] lots = {"0.01", "0.02", "0.05", "0.10", "0.20"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this, android.R.layout.simple_spinner_item, lots
+        TextView subtitle = makeText(
+            "منصة التداول الذكية", 15, "#C9B987"
         );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        lot.setAdapter(adapter);
-        account.addView(lot);
+        subtitle.setGravity(Gravity.CENTER);
+        root.addView(subtitle);
 
-        button(account, "▶ تشغيل", false, this::startTrading);
-        button(account, "■ إيقاف", true, this::stopTrading);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(16), dp(18), dp(16), dp(18));
+        panel.setBackgroundColor(Color.parseColor(CARD));
 
-        LinearLayout open = section("الصفقات المفتوحة");
-        count = text("0 / 3", 20, GOLD);
-        open.addView(count);
-        positions = new LinearLayout(this);
-        positions.setOrientation(LinearLayout.VERTICAL);
-        open.addView(positions);
-        positions.addView(text("لا توجد بيانات بعد", 15, "#FFFFFF"));
+        LinearLayout.LayoutParams panelParams =
+            new LinearLayout.LayoutParams(-1, -2);
+        panelParams.setMargins(0, dp(25), 0, dp(15));
+        root.addView(panel, panelParams);
 
-        LinearLayout history = section("الصفقات المنتهية");
-        history.addView(text("سيتم عرض سجل الصفقات هنا", 14, "#FFFFFF"));
+        TextView heading = makeText("حالة النظام", 20, GOLD);
+        heading.setTypeface(null, Typeface.BOLD);
+        panel.addView(heading);
 
-        LinearLayout activity = section("سجل العمليات");
-        logs = new LinearLayout(this);
-        logs.setOrientation(LinearLayout.VERTICAL);
-        activity.addView(logs);
-        logs.addView(text("التطبيق جاهز", 14, GOLD));
+        status = makeText("المحرك غير مفعّل", 18, "#FFFFFF");
+        panel.addView(status);
+
+        TextView note = makeText(
+            "نسخة التطوير — التداول متوقف", 14, "#C9B987"
+        );
+        panel.addView(note);
+
+        Button start = makeButton("▶ تشغيل", GOLD, () ->
+            status.setText("المحرك غير مفعّل — التشغيل غير متاح حاليًا")
+        );
+        panel.addView(start, new LinearLayout.LayoutParams(-1, dp(55)));
+
+        Button stop = makeButton("■ إيقاف", "#B83E48", () ->
+            status.setText("النظام متوقف")
+        );
+        LinearLayout.LayoutParams stopParams =
+            new LinearLayout.LayoutParams(-1, dp(55));
+        stopParams.topMargin = dp(10);
+        panel.addView(stop, stopParams);
+
+        Button settings = makeButton(
+            "⚙ إعدادات الحساب", GOLD, this::showAccountSettings
+        );
+        root.addView(settings, new LinearLayout.LayoutParams(-1, dp(55)));
     }
 
-    void startTrading() {
-        String e = email.getText().toString().trim();
-        String k = apiKey.getText().toString().trim();
-        String p = password.getText().toString();
+    void showAccountSettings() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(10), dp(20), dp(10));
+        form.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
-        if (e.isEmpty() || k.isEmpty() || p.isEmpty()) {
-            status.setText("أكمل بيانات حساب DEMO");
-            return;
+        EditText emailField = new EditText(this);
+        emailField.setHint("البريد الإلكتروني");
+        emailField.setSingleLine(true);
+        form.addView(emailField);
+
+        EditText keyField = new EditText(this);
+        keyField.setHint("Capital.com API Key");
+        keyField.setSingleLine(true);
+        keyField.setInputType(129);
+        form.addView(keyField);
+
+        EditText passwordField = new EditText(this);
+        passwordField.setHint("كلمة مرور API");
+        passwordField.setSingleLine(true);
+        passwordField.setInputType(129);
+        form.addView(passwordField);
+
+        try {
+            String[] saved = SecureCredentials.load(this);
+            if (saved != null) {
+                emailField.setText(saved[0]);
+                keyField.setText(saved[1]);
+                passwordField.setText(saved[2]);
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "تعذر قراءة البيانات المحفوظة", Toast.LENGTH_LONG).show();
         }
 
-        Intent i = new Intent(this, TradingService.class);
-        i.setAction(TradingService.ACTION_START);
-        i.putExtra("email", e);
-        i.putExtra("key", k);
-        i.putExtra("password", p);
-        i.putExtra("lot", lot.getSelectedItem().toString());
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i);
-        else startService(i);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle("إعدادات حساب DEMO")
+            .setView(form)
+            .setPositiveButton("حفظ مشفّر", null)
+            .setNegativeButton("إلغاء", null)
+            .create();
 
-        apiKey.setText("");
-        password.setText("");
-        status.setText("المحرك غير مفعل - نسخة اختبار");
-    }
+        dialog.setOnShowListener(v -> dialog.getButton(-1).setOnClickListener(view -> {
+            String email = emailField.getText().toString().trim();
+            String key = keyField.getText().toString().trim();
+            String password = passwordField.getText().toString();
 
-    void stopTrading() {
-        Intent i = new Intent(this, TradingService.class);
-        i.setAction(TradingService.ACTION_STOP);
-        startService(i);
-        status.setText("تم طلب إيقاف المحرك");
+            if (email.isEmpty() || key.isEmpty() || password.isEmpty()) {
+                Toast.makeText(this, "أكمل بيانات الحساب", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                SecureCredentials.save(this, email, key, password);
+                Toast.makeText(this, "تم حفظ بيانات DEMO بشكل مشفّر", Toast.LENGTH_LONG).show();
+                dialog.dismiss();
+            } catch (Exception e) {
+                Toast.makeText(this, "فشل الحفظ المشفّر", Toast.LENGTH_LONG).show();
+            }
+        }));
+
+        dialog.show();
     }
 }
