@@ -12,7 +12,20 @@
           "package_name": "com.fer3oon.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "238363806362-nro5uc969c9p75jnuhm8i0e1b3hrt5is.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fer3oon.app",
+            "certificate_hash": "8beec324956c4d31adf465cbf7c2213d34f17f38"
+          }
+        },
+        {
+          "client_id": "238363806362-d4uv87sg0ba93lbgmh6pi6j5ailme3pq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCNBL8-eiANK5UDdRJ8bdd0K3hdPIE69LQ"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "238363806362-d4uv87sg0ba93lbgmh6pi6j5ailme3pq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

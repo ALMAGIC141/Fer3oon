@@ -13,4 +13,19 @@ android {
         versionCode 1
         versionName '1.0'
     }
+
+    signingConfigs {
+        ci {
+            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "${rootDir}/fer3oon-signing.jks")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.ci
+        }
+    }
 }
