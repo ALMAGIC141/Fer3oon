@@ -238,69 +238,161 @@ public class MainActivity extends Activity {
         }
     }
 
+
+    LinearLayout dashboardCard(String heading) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(15), dp(16), dp(15));
+        card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+
+        android.graphics.drawable.GradientDrawable bg =
+            new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{Color.parseColor("#202020"), Color.parseColor("#111111")}
+            );
+        bg.setCornerRadius(dp(18));
+        bg.setStroke(dp(1), Color.parseColor("#66512B"));
+        card.setBackground(bg);
+        card.setElevation(dp(3));
+
+        TextView title = makeText(heading, 17, GOLD);
+        title.setTypeface(null, Typeface.BOLD);
+        card.addView(title);
+
+        LinearLayout.LayoutParams params =
+            new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, dp(9), 0, dp(12));
+        return card;
+    }
+
+    void addMetric(LinearLayout row, String label, String value) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setGravity(Gravity.CENTER);
+        item.setPadding(dp(5), dp(10), dp(5), dp(10));
+
+        TextView number = makeText(value, 20, "#FFFFFF");
+        number.setTypeface(null, Typeface.BOLD);
+        number.setGravity(Gravity.CENTER);
+        item.addView(number);
+
+        TextView caption = makeText(label, 12, "#B9A77A");
+        caption.setGravity(Gravity.CENTER);
+        item.addView(caption);
+
+        LinearLayout.LayoutParams params =
+            new LinearLayout.LayoutParams(0, -2, 1);
+        row.addView(item, params);
+    }
+
     void showDashboard() {
         LinearLayout root = createRoot();
         addHeader(root);
 
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(16), dp(18), dp(16), dp(18));
-        panel.setBackgroundColor(Color.parseColor(CARD));
+        TextView brand = makeText("لوحة القيادة الملكية", 14, "#B9A77A");
+        brand.setGravity(Gravity.CENTER);
+        root.addView(brand);
 
-        LinearLayout.LayoutParams panelParams =
-            new LinearLayout.LayoutParams(-1, -2);
-        panelParams.setMargins(0, dp(25), 0, dp(15));
-        root.addView(panel, panelParams);
+        LinearLayout account = dashboardCard("👑  الحساب والمحفظة");
+        TextView demo = makeText("حساب التداول التجريبي DEMO", 15, "#FFFFFF");
+        account.addView(demo);
 
-        TextView heading = makeText("حالة النظام", 20, GOLD);
-        heading.setTypeface(null, Typeface.BOLD);
-        panel.addView(heading);
+        String accountState = "حساب DEMO غير مربوط";
+        try {
+            String[] saved = SecureCredentials.load(this);
+            if (saved != null && saved.length >= 3 &&
+                !saved[0].isEmpty() && !saved[1].isEmpty() &&
+                !saved[2].isEmpty()) {
+                accountState = "بيانات حساب DEMO محفوظة بشكل مشفّر";
+            }
+        } catch (Exception ignored) {}
 
-        status = makeText("المحرك غير مفعّل", 18, "#FFFFFF");
-        panel.addView(status);
+        TextView accountInfo = makeText(accountState, 13, "#C9B987");
+        account.addView(accountInfo);
 
-        TextView note = makeText(
-            "نسخة التطوير — التداول متوقف",
-            14, "#C9B987"
+        LinearLayout metrics = new LinearLayout(this);
+        metrics.setOrientation(LinearLayout.HORIZONTAL);
+        metrics.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addMetric(metrics, "الرصيد", "—");
+        addMetric(metrics, "الأرباح", "—");
+        addMetric(metrics, "الخسائر", "—");
+        account.addView(metrics);
+        root.addView(account);
+
+        LinearLayout chart = dashboardCard("📈  الرسم البياني");
+        TextView chartPlaceholder = makeText(
+            "بانتظار الاتصال بمصدر الأسعار\nستظهر حركة السوق هنا عند الربط",
+            14, "#AAAAAA"
         );
-        panel.addView(note);
+        chartPlaceholder.setGravity(Gravity.CENTER);
+        chartPlaceholder.setPadding(0, dp(25), 0, dp(25));
+        chart.addView(chartPlaceholder);
+        root.addView(chart);
+
+        LinearLayout system = dashboardCard("⚙  حالة النظام");
+        status = makeText("● المحرك متوقف", 18, "#E8C46A");
+        status.setTypeface(null, Typeface.BOLD);
+        system.addView(status);
+
+        TextView connection = makeText(
+            "الاتصال بالوسيط: غير متصل",
+            13, "#BBBBBB"
+        );
+        system.addView(connection);
+
+        TextView mode = makeText(
+            "وضع التشغيل: DEMO فقط",
+            13, "#BBBBBB"
+        );
+        system.addView(mode);
+        root.addView(system);
+
+        LinearLayout controls = dashboardCard("التحكم في المحرك");
 
         Button start = makeButton(
-            "▶ تشغيل",
-            GOLD,
-            () -> status.setText(
-                "المحرك غير مفعّل — التشغيل غير متاح حاليًا"
-            )
+            "▶  تشغيل المحرك",
+            "#D8B45D",
+            () -> status.setText("المحرك متوقف — التشغيل غير متاح في نسخة التطوير")
         );
-        panel.addView(start, new LinearLayout.LayoutParams(-1, dp(55)));
+        controls.addView(start, new LinearLayout.LayoutParams(-1, dp(58)));
 
         Button stop = makeButton(
-            "■ إيقاف",
-            "#B83E48",
-            () -> status.setText("النظام متوقف")
+            "■  إيقاف المحرك",
+            "#B94A50",
+            () -> status.setText("● المحرك متوقف")
         );
-
         LinearLayout.LayoutParams stopParams =
-            new LinearLayout.LayoutParams(-1, dp(55));
+            new LinearLayout.LayoutParams(-1, dp(58));
         stopParams.topMargin = dp(10);
-        panel.addView(stop, stopParams);
+        controls.addView(stop, stopParams);
+        root.addView(controls);
 
         Button settings = makeButton(
-            "⚙ إعدادات الحساب",
-            GOLD,
+            "⚙  إعدادات حساب الوسيط",
+            "#D8B45D",
             this::showAccountSettings
         );
-        root.addView(settings, new LinearLayout.LayoutParams(-1, dp(55)));
+        LinearLayout.LayoutParams settingsParams =
+            new LinearLayout.LayoutParams(-1, dp(55));
+        settingsParams.topMargin = dp(5);
+        root.addView(settings, settingsParams);
 
         FirebaseUser user = auth.getCurrentUser();
         if (user != null && user.getEmail() != null) {
-            TextView account = makeText(
-                "الحساب: " + user.getEmail(),
-                13, "#C9B987"
+            TextView accountEmail = makeText(
+                "حساب Google: " + user.getEmail(),
+                12, "#B9A77A"
             );
-            account.setGravity(Gravity.CENTER);
-            root.addView(account);
+            accountEmail.setGravity(Gravity.CENTER);
+            root.addView(accountEmail);
         }
+
+        TextView disclaimer = makeText(
+            "نسخة تطوير — لا يتم إرسال أوامر تداول",
+            12, "#888888"
+        );
+        disclaimer.setGravity(Gravity.CENTER);
+        root.addView(disclaimer);
     }
 
     void showAccountSettings() {
