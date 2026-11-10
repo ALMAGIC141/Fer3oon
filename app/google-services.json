@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238363806362",
+    "project_id": "fer3oon-b8712",
+    "storage_bucket": "fer3oon-b8712.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238363806362:android:177f37684c178ffe53ed23",
+        "android_client_info": {
+          "package_name": "com.fer3oon.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNBL8-eiANK5UDdRJ8bdd0K3hdPIE69LQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
