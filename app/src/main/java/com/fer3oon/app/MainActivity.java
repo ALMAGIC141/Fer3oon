@@ -8,10 +8,22 @@ import android.graphics.Typeface;
 import android.view.*;
 import android.widget.*;
 
+import androidx.credentials.*;
+import androidx.credentials.exceptions.*;
+import com.google.android.libraries.identity.googleid.*;
+import com.google.firebase.auth.*;
+
+import java.util.concurrent.*;
+
 public class MainActivity extends Activity {
+
     final String GOLD = "#E8C46A";
     final String BG = "#080808";
     final String CARD = "#191919";
+
+    FirebaseAuth auth;
+    CredentialManager credentialManager;
+    ExecutorService executor;
     TextView status;
 
     int dp(float n) {
@@ -34,37 +46,201 @@ public class MainActivity extends Activity {
         b.setTextSize(16);
         b.setTypeface(null, Typeface.BOLD);
         b.setBackgroundTintList(
-            android.content.res.ColorStateList.valueOf(Color.parseColor(color))
+            android.content.res.ColorStateList.valueOf(
+                Color.parseColor(color)
+            )
         );
         b.setOnClickListener(v -> action.run());
         return b;
     }
 
-    @Override
-    public void onCreate(Bundle saved) {
-        super.onCreate(saved);
-        getWindow().setStatusBarColor(Color.BLACK);
-        getWindow().setNavigationBarColor(Color.BLACK);
-
+    LinearLayout createRoot() {
         ScrollView scroll = new ScrollView(this);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         root.setPadding(dp(18), dp(20), dp(18), dp(20));
         root.setBackgroundColor(Color.parseColor(BG));
+
         scroll.addView(root);
         setContentView(scroll);
+        return root;
+    }
 
+    void addHeader(LinearLayout root) {
         TextView title = makeText("👑 Fer3oon", 32, GOLD);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(null, Typeface.BOLD);
         root.addView(title);
 
-        TextView subtitle = makeText(
-            "منصة التداول الذكية", 15, "#C9B987"
-        );
+        TextView subtitle = makeText("منصة التداول الذكية", 15, "#C9B987");
         subtitle.setGravity(Gravity.CENTER);
         root.addView(subtitle);
+    }
+
+    @Override
+    public void onCreate(Bundle saved) {
+        super.onCreate(saved);
+
+        getWindow().setStatusBarColor(Color.BLACK);
+        getWindow().setNavigationBarColor(Color.BLACK);
+
+        auth = FirebaseAuth.getInstance();
+        credentialManager = CredentialManager.create(getBaseContext());
+        executor = Executors.newSingleThreadExecutor();
+
+        if (auth.getCurrentUser() != null) {
+            showDashboard();
+        } else {
+            showLoginScreen();
+        }
+    }
+
+    void showLoginScreen() {
+        LinearLayout root = createRoot();
+        addHeader(root);
+
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(dp(16), dp(25), dp(16), dp(25));
+        panel.setBackgroundColor(Color.parseColor(CARD));
+
+        LinearLayout.LayoutParams params =
+            new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, dp(45), 0, dp(20));
+        root.addView(panel, params);
+
+        TextView heading = makeText("مرحبًا بك في Fer3oon", 21, GOLD);
+        heading.setGravity(Gravity.CENTER);
+        heading.setTypeface(null, Typeface.BOLD);
+        panel.addView(heading);
+
+        TextView note = makeText(
+            "سجّل الدخول باستخدام حساب Google للمتابعة",
+            15, "#FFFFFF"
+        );
+        note.setGravity(Gravity.CENTER);
+        panel.addView(note);
+
+        Button login = makeButton(
+            "🌐 تسجيل الدخول باستخدام Google",
+            GOLD,
+            this::startGoogleSignIn
+        );
+
+        LinearLayout.LayoutParams buttonParams =
+            new LinearLayout.LayoutParams(-1, dp(58));
+        buttonParams.topMargin = dp(20);
+        panel.addView(login, buttonParams);
+
+        TextView footer = makeText(
+            "تسجيل الدخول لا يشغّل محرك التداول",
+            13, "#C9B987"
+        );
+        footer.setGravity(Gravity.CENTER);
+        root.addView(footer);
+    }
+
+    void startGoogleSignIn() {
+        Toast.makeText(this, "جاري فتح تسجيل الدخول...", Toast.LENGTH_SHORT).show();
+
+        GetGoogleIdOption googleOption =
+            new GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(
+                    getString(R.string.default_web_client_id)
+                )
+                .build();
+
+        GetCredentialRequest request =
+            new GetCredentialRequest.Builder()
+                .addCredentialOption(googleOption)
+                .build();
+
+        credentialManager.getCredentialAsync(
+            this,
+            request,
+            new CancellationSignal(),
+            executor,
+            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                @Override
+                public void onResult(GetCredentialResponse result) {
+                    runOnUiThread(() ->
+                        handleGoogleCredential(result.getCredential())
+                    );
+                }
+
+                @Override
+                public void onError(GetCredentialException e) {
+                    runOnUiThread(() ->
+                        Toast.makeText(
+                            MainActivity.this,
+                            "تعذر تسجيل الدخول: " + e.getMessage(),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    );
+                }
+            }
+        );
+    }
+
+    void handleGoogleCredential(Credential credential) {
+        if (!(credential instanceof CustomCredential)
+            || !GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                .equals(credential.getType())) {
+
+            Toast.makeText(
+                this,
+                "نوع حساب Google غير مدعوم",
+                Toast.LENGTH_LONG
+            ).show();
+            return;
+        }
+
+        try {
+            CustomCredential custom = (CustomCredential) credential;
+
+            GoogleIdTokenCredential googleCredential =
+                GoogleIdTokenCredential.createFrom(custom.getData());
+
+            AuthCredential firebaseCredential =
+                GoogleAuthProvider.getCredential(
+                    googleCredential.getIdToken(),
+                    null
+                );
+
+            auth.signInWithCredential(firebaseCredential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(
+                            this,
+                            "تم تسجيل الدخول بنجاح",
+                            Toast.LENGTH_SHORT
+                        ).show();
+                        showDashboard();
+                    } else {
+                        Toast.makeText(
+                            this,
+                            "فشل تسجيل الدخول إلى Firebase",
+                            Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+
+        } catch (Exception e) {
+            Toast.makeText(
+                this,
+                "تعذر قراءة بيانات حساب Google",
+                Toast.LENGTH_LONG
+            ).show();
+        }
+    }
+
+    void showDashboard() {
+        LinearLayout root = createRoot();
+        addHeader(root);
 
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -84,27 +260,47 @@ public class MainActivity extends Activity {
         panel.addView(status);
 
         TextView note = makeText(
-            "نسخة التطوير — التداول متوقف", 14, "#C9B987"
+            "نسخة التطوير — التداول متوقف",
+            14, "#C9B987"
         );
         panel.addView(note);
 
-        Button start = makeButton("▶ تشغيل", GOLD, () ->
-            status.setText("المحرك غير مفعّل — التشغيل غير متاح حاليًا")
+        Button start = makeButton(
+            "▶ تشغيل",
+            GOLD,
+            () -> status.setText(
+                "المحرك غير مفعّل — التشغيل غير متاح حاليًا"
+            )
         );
         panel.addView(start, new LinearLayout.LayoutParams(-1, dp(55)));
 
-        Button stop = makeButton("■ إيقاف", "#B83E48", () ->
-            status.setText("النظام متوقف")
+        Button stop = makeButton(
+            "■ إيقاف",
+            "#B83E48",
+            () -> status.setText("النظام متوقف")
         );
+
         LinearLayout.LayoutParams stopParams =
             new LinearLayout.LayoutParams(-1, dp(55));
         stopParams.topMargin = dp(10);
         panel.addView(stop, stopParams);
 
         Button settings = makeButton(
-            "⚙ إعدادات الحساب", GOLD, this::showAccountSettings
+            "⚙ إعدادات الحساب",
+            GOLD,
+            this::showAccountSettings
         );
         root.addView(settings, new LinearLayout.LayoutParams(-1, dp(55)));
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            TextView account = makeText(
+                "الحساب: " + user.getEmail(),
+                13, "#C9B987"
+            );
+            account.setGravity(Gravity.CENTER);
+            root.addView(account);
+        }
     }
 
     void showAccountSettings() {
@@ -138,35 +334,88 @@ public class MainActivity extends Activity {
                 passwordField.setText(saved[2]);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "تعذر قراءة البيانات المحفوظة", Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                this,
+                "تعذر قراءة البيانات المحفوظة",
+                Toast.LENGTH_LONG
+            ).show();
         }
 
         AlertDialog dialog = new AlertDialog.Builder(this)
             .setTitle("إعدادات حساب DEMO")
             .setView(form)
             .setPositiveButton("حفظ مشفّر", null)
+            .setNeutralButton("تسجيل الخروج من Google", (d, w) -> signOutGoogle())
             .setNegativeButton("إلغاء", null)
             .create();
 
-        dialog.setOnShowListener(v -> dialog.getButton(-1).setOnClickListener(view -> {
-            String email = emailField.getText().toString().trim();
-            String key = keyField.getText().toString().trim();
-            String password = passwordField.getText().toString();
+        dialog.setOnShowListener(v ->
+            dialog.getButton(-1).setOnClickListener(view -> {
+                String email = emailField.getText().toString().trim();
+                String key = keyField.getText().toString().trim();
+                String password = passwordField.getText().toString();
 
-            if (email.isEmpty() || key.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "أكمل بيانات الحساب", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                if (email.isEmpty() || key.isEmpty() || password.isEmpty()) {
+                    Toast.makeText(
+                        this,
+                        "أكمل بيانات الحساب",
+                        Toast.LENGTH_SHORT
+                    ).show();
+                    return;
+                }
 
-            try {
-                SecureCredentials.save(this, email, key, password);
-                Toast.makeText(this, "تم حفظ بيانات DEMO بشكل مشفّر", Toast.LENGTH_LONG).show();
-                dialog.dismiss();
-            } catch (Exception e) {
-                Toast.makeText(this, "فشل الحفظ المشفّر", Toast.LENGTH_LONG).show();
-            }
-        }));
+                try {
+                    SecureCredentials.save(this, email, key, password);
+                    Toast.makeText(
+                        this,
+                        "تم حفظ بيانات DEMO بشكل مشفّر",
+                        Toast.LENGTH_LONG
+                    ).show();
+                    dialog.dismiss();
+                } catch (Exception e) {
+                    Toast.makeText(
+                        this,
+                        "فشل الحفظ المشفّر",
+                        Toast.LENGTH_LONG
+                    ).show();
+                }
+            })
+        );
 
         dialog.show();
+    }
+
+    void signOutGoogle() {
+        auth.signOut();
+
+        showLoginScreen();
+
+        credentialManager.clearCredentialStateAsync(
+            new ClearCredentialStateRequest(),
+            new CancellationSignal(),
+            executor,
+            new CredentialManagerCallback<Void, ClearCredentialException>() {
+                @Override
+                public void onResult(Void result) {
+                }
+
+                @Override
+                public void onError(ClearCredentialException e) {
+                    android.util.Log.e(
+                        "Fer3oon",
+                        "Credential state clearing failed",
+                        e
+                    );
+                }
+            }
+        );
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (executor != null) {
+            executor.shutdown();
+        }
     }
 }
