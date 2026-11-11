@@ -495,7 +495,7 @@ public class MainActivity extends Activity {
 
         // 1. بطاقة حساب التداول التجريبي (DEMO Account Status Card)
         LinearLayout accountCard = createRoyalCard("👑  حساب التداول التجريبي", "DEMO Account");
-        String accountState = "حساب DEMO غير مربوط — أضف المفاتيح من الإعدادات";
+        String accountState = "حساب DEMO غير مربوط — لم تُحفظ بيانات الوسيط بعد";
         String emailSnippet = "";
         try {
             String[] saved = SecureCredentials.load(this);
@@ -503,7 +503,7 @@ public class MainActivity extends Activity {
                 saved[0] != null && !saved[0].trim().isEmpty() &&
                 saved[1] != null && !saved[1].trim().isEmpty() &&
                 saved[2] != null && !saved[2].trim().isEmpty()) {
-                accountState = "بيانات حساب DEMO مشفّرة عتادياً داخل AndroidKeyStore";
+                accountState = "بيانات حساب DEMO محفوظة ومشفّرة باستخدام AndroidKeyStore";
                 emailSnippet = "البريد المعتمد: " + saved[0];
             }
         } catch (Exception ignored) {}
