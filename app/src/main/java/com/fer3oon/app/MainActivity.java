@@ -852,28 +852,46 @@ public class MainActivity extends Activity {
 
     void signOutGoogle() {
         auth.signOut();
-
+        isSigningIn = false;
         showLoginScreen();
 
-        credentialManager.clearCredentialStateAsync(
-            new ClearCredentialStateRequest(),
-            new CancellationSignal(),
-            executor,
-            new CredentialManagerCallback<Void, ClearCredentialException>() {
-                @Override
-                public void onResult(Void result) {
-                }
+        if (credentialManager == null
+                || executor == null
+                || executor.isShutdown()) {
+            android.util.Log.w(
+                "Fer3oon",
+                "Google credential state clearing skipped"
+            );
+            return;
+        }
 
-                @Override
-                public void onError(ClearCredentialException e) {
-                    android.util.Log.e(
-                        "Fer3oon",
-                        "Credential state clearing failed",
-                        e
-                    );
+        try {
+            credentialManager.clearCredentialStateAsync(
+                new ClearCredentialStateRequest(),
+                new CancellationSignal(),
+                executor,
+                new CredentialManagerCallback<Void, ClearCredentialException>() {
+                    @Override
+                    public void onResult(Void result) {
+                    }
+
+                    @Override
+                    public void onError(ClearCredentialException e) {
+                        android.util.Log.e(
+                            "Fer3oon",
+                            "Credential state clearing failed",
+                            e
+                        );
+                    }
                 }
-            }
-        );
+            );
+        } catch (Exception e) {
+            android.util.Log.e(
+                "Fer3oon",
+                "Unable to clear Google credential state",
+                e
+            );
+        }
     }
 
     @Override
