@@ -35,6 +35,8 @@ public class MainActivity extends Activity {
     CredentialManager credentialManager;
     ExecutorService executor;
     TextView status;
+    Button googleLoginButton;
+    boolean isSigningIn = false;
 
     // دوال مساعدة لإنشاء عناصر واجهة المستخدم الملكية (UI Helpers)
     int dp(float n) {
@@ -308,7 +310,7 @@ public class MainActivity extends Activity {
         note.setPadding(0, 0, 0, dp(18));
         card.addView(note);
 
-        Button login = createRoyalButton(
+        googleLoginButton = createRoyalButton(
             "🌐  تسجيل الدخول باستخدام Google",
             COLOR_GOLD_ROYAL,
             "#14110C",
@@ -319,7 +321,7 @@ public class MainActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT,
             dp(52)
         );
-        card.addView(login, btnParams);
+        card.addView(googleLoginButton, btnParams);
 
         TextView securityBadge = makeText(
             "🔒 الدخول محمي عبر Google Credential Manager\nالمحرك معطل بالكامل في هذه النسخة لأغراض التطوير والأمان",
@@ -334,47 +336,71 @@ public class MainActivity extends Activity {
         root.addView(card);
     }
 
+    void setGoogleLoginEnabled(boolean enabled) {
+        if (googleLoginButton != null) {
+            googleLoginButton.setEnabled(enabled);
+        }
+    }
+
     void startGoogleSignIn() {
+        if (isSigningIn) return;
+
+        isSigningIn = true;
+        setGoogleLoginEnabled(false);
+
         Toast.makeText(this, "جاري فتح تسجيل الدخول الموثق...", Toast.LENGTH_SHORT).show();
 
-        GetGoogleIdOption googleOption =
-            new GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(
-                    getString(R.string.default_web_client_id)
-                )
-                .build();
+        try {
+            GetGoogleIdOption googleOption =
+                new GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(getString(R.string.default_web_client_id))
+                    .build();
 
-        GetCredentialRequest request =
-            new GetCredentialRequest.Builder()
-                .addCredentialOption(googleOption)
-                .build();
+            GetCredentialRequest request =
+                new GetCredentialRequest.Builder()
+                    .addCredentialOption(googleOption)
+                    .build();
 
-        credentialManager.getCredentialAsync(
-            this,
-            request,
-            new CancellationSignal(),
-            executor,
-            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-                @Override
-                public void onResult(GetCredentialResponse result) {
-                    runOnUiThread(() ->
-                        handleGoogleCredential(result.getCredential())
-                    );
+            credentialManager.getCredentialAsync(
+                this,
+                request,
+                new CancellationSignal(),
+                executor,
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        runOnUiThread(() ->
+                            handleGoogleCredential(result.getCredential())
+                        );
+                    }
+
+                    @Override
+                    public void onError(GetCredentialException e) {
+                        runOnUiThread(() -> {
+                            isSigningIn = false;
+                            setGoogleLoginEnabled(true);
+
+                            if (!(e instanceof GetCredentialCancellationException)) {
+                                Toast.makeText(
+                                    MainActivity.this,
+                                    "تعذر تسجيل الدخول: " + e.getMessage(),
+                                    Toast.LENGTH_LONG
+                                ).show();
+                            }
+                        });
+                    }
                 }
-
-                @Override
-                public void onError(GetCredentialException e) {
-                    runOnUiThread(() ->
-                        Toast.makeText(
-                            MainActivity.this,
-                            "تعذر تسجيل الدخول: " + e.getMessage(),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    );
-                }
-            }
-        );
+            );
+        } catch (Exception e) {
+            isSigningIn = false;
+            setGoogleLoginEnabled(true);
+            Toast.makeText(
+                this,
+                "تعذر بدء تسجيل الدخول",
+                Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     void handleGoogleCredential(Credential credential) {
@@ -382,6 +408,8 @@ public class MainActivity extends Activity {
             || !GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 .equals(credential.getType())) {
 
+            isSigningIn = false;
+            setGoogleLoginEnabled(true);
             Toast.makeText(
                 this,
                 "نوع حساب Google غير مدعوم",
@@ -404,6 +432,9 @@ public class MainActivity extends Activity {
 
             auth.signInWithCredential(firebaseCredential)
                 .addOnCompleteListener(this, task -> {
+                    isSigningIn = false;
+                    setGoogleLoginEnabled(true);
+
                     if (task.isSuccessful()) {
                         Toast.makeText(
                             this,
@@ -421,6 +452,8 @@ public class MainActivity extends Activity {
                 });
 
         } catch (Exception e) {
+            isSigningIn = false;
+            setGoogleLoginEnabled(true);
             Toast.makeText(
                 this,
                 "تعذر قراءة بيانات حساب Google",
