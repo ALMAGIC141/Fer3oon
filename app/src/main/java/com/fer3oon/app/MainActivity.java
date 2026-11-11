@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
     TextView status;
     Button googleLoginButton;
     boolean isSigningIn = false;
+    boolean isActivityDestroyed = false;
 
     // دوال مساعدة لإنشاء عناصر واجهة المستخدم الملكية (UI Helpers)
     int dp(float n) {
@@ -371,6 +372,7 @@ public class MainActivity extends Activity {
                     @Override
                     public void onResult(GetCredentialResponse result) {
                         runOnUiThread(() -> {
+                            if (isActivityDestroyed) return;
                             try {
                                 Credential credential =
                                     result == null ? null : result.getCredential();
@@ -401,6 +403,7 @@ public class MainActivity extends Activity {
                     @Override
                     public void onError(GetCredentialException e) {
                         runOnUiThread(() -> {
+                            if (isActivityDestroyed) return;
                             isSigningIn = false;
                             setGoogleLoginEnabled(true);
 
@@ -455,6 +458,7 @@ public class MainActivity extends Activity {
 
             auth.signInWithCredential(firebaseCredential)
                 .addOnCompleteListener(this, task -> {
+                    if (isActivityDestroyed) return;
                     isSigningIn = false;
                     setGoogleLoginEnabled(true);
 
@@ -874,6 +878,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        isActivityDestroyed = true;
+        isSigningIn = false;
         super.onDestroy();
         if (executor != null) {
             executor.shutdown();
