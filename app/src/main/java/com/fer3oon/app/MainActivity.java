@@ -712,9 +712,9 @@ public class MainActivity extends Activity {
         content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         content.setPadding(dp(20), dp(16), dp(20), dp(16));
 
-        content.addView(makeText("سجل النشاط والأمان الأخير", 15, COLOR_GOLD_ROYAL, true));
+        content.addView(makeText("معلومات الحالة والأمان", 15, COLOR_GOLD_ROYAL, true));
         TextView logs = makeText(
-            "● جلسة المستخدم: تم تسجيل الدخول الآمن بنجاح.\n● التشفير العتادي: مفاتيح التداول محمية بنظام AndroidKeyStore.\n● حالة المحرك: متوقف — التداول معطل برمجياً في وضع الأمان.\n● سجل عمليات التداول غير متاح في نسخة التطوير.",
+            "● المصادقة: Google Identity / Firebase Auth.\n● حماية بيانات الوسيط: باستخدام AndroidKeyStore.\n● حالة المحرك: متوقف — التداول الحقيقي معطّل.\n● تنبيه: هذه معلومات ثابتة وليست سجل أحداث مباشرًا أو سجل صفقات.",
             13,
             COLOR_TEXT_MUTED,
             false
