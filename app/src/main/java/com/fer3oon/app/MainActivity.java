@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     Button googleLoginButton;
     boolean isSigningIn = false;
     boolean isActivityDestroyed = false;
+    String currentPage = "dashboard";
 
     // دوال مساعدة لإنشاء عناصر واجهة المستخدم الملكية (UI Helpers)
     int dp(float n) {
@@ -489,7 +490,29 @@ public class MainActivity extends Activity {
         }
     }
 
+
+    void addPageHeader(LinearLayout root, String title) {
+        addRoyalHeader(root, title);
+        Button back = createRoyalButton(
+            "‹  العودة إلى لوحة التحكم",
+            "#221B0B", COLOR_GOLD_BRIGHT, COLOR_GOLD_BORDER,
+            this::showDashboard
+        );
+        root.addView(back);
+    }
+
+    void addPageFooter(LinearLayout root) {
+        TextView footer = makeText(
+            "Fer3oon Royal • نسخة تطوير تجريبية DEMO-only",
+            11, COLOR_TEXT_SECONDARY, false
+        );
+        footer.setGravity(Gravity.CENTER);
+        footer.setPadding(0, dp(16), 0, dp(12));
+        root.addView(footer);
+    }
+
     void showDashboard() {
+        currentPage = "dashboard";
         LinearLayout root = setupRootScroll();
         addRoyalHeader(root, "لوحة التحكم وإدارة المحفظة الملكية");
 
@@ -541,31 +564,7 @@ public class MainActivity extends Activity {
         metricsNote.setPadding(0, dp(8), 0, 0);
         balanceCard.addView(metricsNote);
         root.addView(balanceCard);
-
-        // 3. الهوية البصرية الملكية (بدون أي مخطط سعري)
-        LinearLayout identityCard = createRoyalCard(
-            "👑  الهوية الملكية لـ Fer3oon",
-            "Royal Dashboard"
-        );
-
-        android.widget.ImageView identityImage =
-            new android.widget.ImageView(this);
-        identityImage.setImageResource(R.drawable.fer3oon_dashboard);
-        identityImage.setScaleType(
-            android.widget.ImageView.ScaleType.FIT_CENTER
-        );
-        identityImage.setAdjustViewBounds(true);
-        identityImage.setContentDescription(
-            "التصميم الداخلي الملكي بالأسود والذهبي"
-        );
-        identityImage.setLayoutParams(new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        identityCard.addView(identityImage);
-        root.addView(identityCard);
-
-        // 4. حالة المحرك ومؤشر أمان DEMO (Engine Status & DEMO Safety Indicator)
+// 4. حالة المحرك ومؤشر أمان DEMO (Engine Status & DEMO Safety Indicator)
         LinearLayout engineCard = createRoyalCard("⚙  حالة المحرك وصمام الأمان", "وضع آمن");
 
         TextView engineStatusText = makeText("● المحرك متوقف (آمن)", 15, COLOR_GOLD_ROYAL, true);
@@ -620,11 +619,11 @@ public class MainActivity extends Activity {
         // 6. قسم التنقل والخدمات الملكية (Navigation)
         LinearLayout navCard = createRoyalCard("⚡  الخدمات والإعدادات الملكية", "5 أقسام");
 
-        navCard.addView(makeNavTile("👤  الملف الشخصي", "معلومات الحساب والبريد المعتمد", this::showProfileDialog));
+        navCard.addView(makeNavTile("👤  الملف الشخصي", "معلومات الحساب والبريد المعتمد", this::showProfilePage));
         navCard.addView(makeNavTile("🔑  إعدادات وسيط التداول (DEMO)", "إدارة مفاتيح Capital.com المشفرة عتادياً", this::showAccountSettings));
-        navCard.addView(makeNavTile("📊  الإحصائيات والتحليلات", "ملخص الأداء والمؤشرات العامة", this::showStatisticsDialog));
-        navCard.addView(makeNavTile("📜  سجل النشاط والعمليات", "سجل الأحداث وتنبيهات الأمان", this::showActivityHistoryDialog));
-        navCard.addView(makeNavTile("🛡  إعدادات التطبيق والأمان", "خيارات الحماية ومعلومات الإصدار", this::showAppSettingsDialog));
+        navCard.addView(makeNavTile("📊  الإحصائيات والتحليلات", "ملخص الأداء والمؤشرات العامة", this::showStatisticsPage));
+        navCard.addView(makeNavTile("📜  سجل النشاط والعمليات", "سجل الأحداث وتنبيهات الأمان", this::showActivityPage));
+        navCard.addView(makeNavTile("🛡  إعدادات التطبيق والأمان", "خيارات الحماية ومعلومات الإصدار", this::showAppSettingsPage));
 
         root.addView(navCard);
 
@@ -653,122 +652,131 @@ public class MainActivity extends Activity {
         root.addView(disclaimer);
     }
 
-    void showProfileDialog() {
+
+    void showProfilePage() {
+        currentPage = "profile";
+        LinearLayout root = setupRootScroll();
+        addPageHeader(root, "الملف الشخصي الملكي");
+
         FirebaseUser user = auth.getCurrentUser();
-        String email = (user != null && user.getEmail() != null) ? user.getEmail() : "غير مسجل";
-        String uid = (user != null && user.getUid() != null) ? user.getUid() : "—";
+        String email = user != null && user.getEmail() != null
+            ? user.getEmail() : "غير مسجل";
+        String uid = user != null && user.getUid() != null
+            ? user.getUid() : "—";
 
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        content.setPadding(dp(20), dp(16), dp(20), dp(16));
+        LinearLayout card = createRoyalCard("👤 بيانات الحساب", "Google");
+        card.addView(makeText("البريد الإلكتروني المعتمد", 13, COLOR_GOLD_ROYAL, true));
+        card.addView(makeText(email, 14, COLOR_GOLD_BRIGHT, false));
 
-        content.addView(makeText("البريد الإلكتروني المعتمد:", 13, COLOR_GOLD_ROYAL, true));
-        content.addView(makeText(email, 14, "#FFFFFF", false));
+        TextView label = makeText("معرف المستخدم UID", 13, COLOR_GOLD_ROYAL, true);
+        label.setPadding(0, dp(14), 0, dp(4));
+        card.addView(label);
+        card.addView(makeText(uid, 12, COLOR_TEXT_MUTED, false));
+        card.addView(makeText(
+            "المصادقة: Google Identity / Firebase Auth",
+            12, COLOR_TEXT_SECONDARY, false
+        ));
+        root.addView(card);
 
-        TextView uidLabel = makeText("معرف المستخدم (UID):", 13, COLOR_GOLD_ROYAL, true);
-        uidLabel.setPadding(0, dp(10), 0, 0);
-        content.addView(uidLabel);
-        content.addView(makeText(uid, 12, COLOR_TEXT_MUTED, false));
-
-        TextView authType = makeText("نوع المصادقة: Google Identity / Firebase Auth", 12, COLOR_TEXT_SECONDARY, false);
-        authType.setPadding(0, dp(12), 0, 0);
-        content.addView(authType);
-
-        new AlertDialog.Builder(this)
-            .setTitle("الملف الشخصي الملكي")
-            .setView(content)
-            .setPositiveButton("إغلاق", null)
-            .setNeutralButton("تسجيل الخروج من Google", (d, w) -> signOutGoogle())
-            .show();
+        root.addView(createRoyalButton(
+            "تسجيل الخروج من Google",
+            "#241313", COLOR_DANGER, "#5C2626",
+            this::signOutGoogle
+        ));
+        addPageFooter(root);
     }
 
-    void showStatisticsDialog() {
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        content.setPadding(dp(20), dp(16), dp(20), dp(16));
 
-        content.addView(makeText("إحصائيات الأداء (نسخة التطوير)", 15, COLOR_GOLD_ROYAL, true));
-        TextView body = makeText(
-            "● إجمالي العمليات: غير متوفر في نسخة التطوير\n● نسبة الصفقات الناجحة: —\n● أقصى تراجع (Drawdown): —\n● التداول الحقيقي: معطل برمجياً ومحصور في وضع المحاكاة DEMO",
-            13,
-            "#FFFFFF",
-            false
-        );
-        body.setPadding(0, dp(8), 0, 0);
-        content.addView(body);
 
-        new AlertDialog.Builder(this)
-            .setTitle("الإحصائيات والتحليلات")
-            .setView(content)
-            .setPositiveButton("إغلاق", null)
-            .show();
+    void showStatisticsPage() {
+        currentPage = "statistics";
+        LinearLayout root = setupRootScroll();
+        addPageHeader(root, "الإحصائيات والتحليلات");
+
+        LinearLayout card = createRoyalCard("📊 ملخص الأداء", "بيانات غير متصلة");
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addMetricCell(row, "إجمالي العمليات", "—", COLOR_GOLD_BRIGHT);
+        addMetricCell(row, "نسبة النجاح", "—", COLOR_SUCCESS);
+        card.addView(row);
+
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        row2.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        addMetricCell(row2, "أقصى تراجع", "—", COLOR_DANGER);
+        addMetricCell(row2, "صافي الأرباح", "—", COLOR_GOLD_BRIGHT);
+        card.addView(row2);
+
+        card.addView(makeText(
+            "لا توجد صفقات أو بيانات أداء فعلية في نسخة التطوير الحالية. "
+            + "هذه المؤشرات غير متصلة ولا تمثل نتائج تداول.",
+            12, COLOR_TEXT_MUTED, false
+        ));
+        root.addView(card);
+        addPageFooter(root);
     }
 
-    void showActivityHistoryDialog() {
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        content.setPadding(dp(20), dp(16), dp(20), dp(16));
 
-        content.addView(makeText("معلومات الحالة والأمان", 15, COLOR_GOLD_ROYAL, true));
-        TextView logs = makeText(
-            "● المصادقة: Google Identity / Firebase Auth.\n● حماية بيانات الوسيط: باستخدام AndroidKeyStore.\n● حالة المحرك: متوقف — التداول الحقيقي معطّل.\n● تنبيه: هذه معلومات ثابتة وليست سجل أحداث مباشرًا أو سجل صفقات.",
-            13,
-            COLOR_TEXT_MUTED,
-            false
-        );
-        logs.setPadding(0, dp(8), 0, 0);
-        content.addView(logs);
 
-        new AlertDialog.Builder(this)
-            .setTitle("سجل النشاط")
-            .setView(content)
-            .setPositiveButton("إغلاق", null)
-            .show();
+    void showActivityPage() {
+        currentPage = "activity";
+        LinearLayout root = setupRootScroll();
+        addPageHeader(root, "سجل النشاط والأمان");
+
+        LinearLayout card = createRoyalCard("📜 معلومات الحالة", "ثابتة");
+        card.addView(makeText(
+            "● المصادقة: Google Identity / Firebase Auth.\n"
+            + "● حماية بيانات الوسيط: AndroidKeyStore.\n"
+            + "● حالة المحرك: متوقف.\n"
+            + "● وضع التشغيل: DEMO-only.\n"
+            + "● التداول الحقيقي وإرسال الأوامر: معطلان.\n\n"
+            + "تنبيه: هذه معلومات حالة ثابتة وليست سجل أحداث مباشرًا "
+            + "أو سجل صفقات.",
+            13, COLOR_TEXT_MUTED, false
+        ));
+        root.addView(card);
+        addPageFooter(root);
     }
 
-    void showAppSettingsDialog() {
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        content.setPadding(dp(20), dp(16), dp(20), dp(16));
 
-        content.addView(makeText("إعدادات الأمان والتطبيق", 15, COLOR_GOLD_ROYAL, true));
-        TextView info = makeText(
-            "● التطبيق: Fer3oon Royal Trading Dashboard\n● الإصدار: 1.0 (DEMO Development Build)\n● وضع التشغيل: محاكاة تجريبية فقط (DEMO)\n● التداول الحقيقي: معطّل وغير متاح\n● بيانات الحساب: مخصصة لحساب Capital.com التجريبي\n● الأمان: لا تدخل بيانات حساب حقيقي في نسخة التطوير",
-            13,
-            "#FFFFFF",
-            false
-        );
-        info.setPadding(0, dp(8), 0, 0);
-        content.addView(info);
 
-        new AlertDialog.Builder(this)
-            .setTitle("إعدادات التطبيق")
-            .setView(content)
-            .setPositiveButton("إغلاق", null)
-            .show();
+    void showAppSettingsPage() {
+        currentPage = "settings";
+        LinearLayout root = setupRootScroll();
+        addPageHeader(root, "إعدادات التطبيق والأمان");
+
+        LinearLayout card = createRoyalCard("🛡 إعدادات الحماية", "DEMO");
+        card.addView(makeText(
+            "التطبيق: Fer3oon Royal Trading Dashboard\n"
+            + "الإصدار: 1.0 (DEMO Development Build)\n"
+            + "وضع التشغيل: محاكاة تجريبية فقط\n"
+            + "التداول الحقيقي: معطل وغير متاح\n"
+            + "بيانات الحساب: مخصصة لحساب Capital.com التجريبي\n"
+            + "تشفير بيانات الوسيط: AndroidKeyStore\n"
+            + "الاتصال غير الآمن: غير مسموح به عبر إعدادات التطبيق.",
+            13, COLOR_TEXT_MUTED, false
+        ));
+        root.addView(card);
+        addPageFooter(root);
     }
+
+
 
     void showAccountSettings() {
-        LinearLayout form = new LinearLayout(this);
-        form.setOrientation(LinearLayout.VERTICAL);
-        form.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        form.setPadding(dp(20), dp(12), dp(20), dp(12));
+        currentPage = "account";
+        LinearLayout root = setupRootScroll();
+        addPageHeader(root, "إعدادات حساب Capital.com DEMO");
 
-        TextView intro = makeText(
-            "أدخل بيانات حساب Capital.com التجريبي (DEMO). سيتم تشفيرها عتادياً داخل AndroidKeyStore باستخدام AES-256-GCM ولن تخرج من جهازك.",
-            12,
-            COLOR_TEXT_MUTED,
-            false
-        );
-        intro.setPadding(0, 0, 0, dp(12));
-        form.addView(intro);
+        LinearLayout form = createRoyalCard("🔑 بيانات حساب الوسيط", "DEMO فقط");
+        form.addView(makeText(
+            "أدخل بيانات حساب Capital.com التجريبي فقط. "
+            + "سيتم حفظها بالتشفير الموجود في SecureCredentials.",
+            12, COLOR_TEXT_MUTED, false
+        ));
 
         EditText emailField = new EditText(this);
-        emailField.setHint("البريد الإلكتروني للوسيط (DEMO)");
+        emailField.setHint("البريد الإلكتروني لحساب DEMO");
         emailField.setTextColor(Color.WHITE);
         emailField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         emailField.setSingleLine(true);
@@ -779,15 +787,15 @@ public class MainActivity extends Activity {
         keyField.setTextColor(Color.WHITE);
         keyField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         keyField.setSingleLine(true);
-        keyField.setInputType(129); // textPassword
+        keyField.setInputType(129);
         form.addView(keyField);
 
         EditText passwordField = new EditText(this);
-        passwordField.setHint("كلمة مرور API (DEMO Password)");
+        passwordField.setHint("كلمة مرور API التجريبية");
         passwordField.setTextColor(Color.WHITE);
         passwordField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         passwordField.setSingleLine(true);
-        passwordField.setInputType(129); // textPassword
+        passwordField.setInputType(129);
         form.addView(passwordField);
 
         try {
@@ -798,57 +806,46 @@ public class MainActivity extends Activity {
                 if (saved[2] != null) passwordField.setText(saved[2]);
             }
         } catch (Exception e) {
-            Toast.makeText(
-                this,
-                "تعذر قراءة البيانات المحفوظة",
-                Toast.LENGTH_LONG
-            ).show();
+            Toast.makeText(this, "تعذر قراءة البيانات المحفوظة",
+                Toast.LENGTH_LONG).show();
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-            .setTitle("إعدادات حساب الوسيط (DEMO)")
-            .setView(form)
-            .setPositiveButton("حفظ مشفّر عتادياً", null)
-            .setNeutralButton("تسجيل الخروج من Google", (d, w) -> signOutGoogle())
-            .setNegativeButton("إلغاء", null)
-            .create();
-
-        dialog.setOnShowListener(v ->
-            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(view -> {
+        form.addView(createRoyalButton(
+            "حفظ بيانات DEMO المشفّرة",
+            "#221B0B", COLOR_GOLD_BRIGHT, COLOR_GOLD_BORDER,
+            () -> {
                 String email = emailField.getText().toString().trim();
                 String key = keyField.getText().toString().trim();
                 String password = passwordField.getText().toString();
 
                 if (email.isEmpty() || key.isEmpty() || password.isEmpty()) {
-                    Toast.makeText(
-                        this,
-                        "يرجى إكمال جميع حقول بيانات الحساب",
-                        Toast.LENGTH_SHORT
-                    ).show();
+                    Toast.makeText(this, "يرجى إكمال جميع الحقول",
+                        Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 try {
                     SecureCredentials.save(this, email, key, password);
-                    Toast.makeText(
-                        this,
+                    Toast.makeText(this,
                         "تم حفظ بيانات DEMO بشكل مشفّر داخل KeyStore",
-                        Toast.LENGTH_LONG
-                    ).show();
-                    dialog.dismiss();
+                        Toast.LENGTH_LONG).show();
                     showDashboard();
                 } catch (Exception e) {
-                    Toast.makeText(
-                        this,
-                        "فشل الحفظ المشفّر",
-                        Toast.LENGTH_LONG
-                    ).show();
+                    Toast.makeText(this, "فشل الحفظ المشفّر",
+                        Toast.LENGTH_LONG).show();
                 }
-            })
-        );
+            }
+        ));
+        root.addView(form);
 
-        dialog.show();
+        root.addView(createRoyalButton(
+            "تسجيل الخروج من Google",
+            "#241313", COLOR_DANGER, "#5C2626",
+            this::signOutGoogle
+        ));
+        addPageFooter(root);
     }
+
 
     void signOutGoogle() {
         auth.signOut();
@@ -892,6 +889,16 @@ public class MainActivity extends Activity {
                 e
             );
         }
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        if (!"dashboard".equals(currentPage)) {
+            showDashboard();
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override
