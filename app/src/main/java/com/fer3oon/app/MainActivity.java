@@ -370,11 +370,34 @@ public class MainActivity extends Activity {
                 new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
                     @Override
                     public void onResult(GetCredentialResponse result) {
-                        runOnUiThread(() ->
-                            handleGoogleCredential(result.getCredential())
-                        );
-                    }
+                        runOnUiThread(() -> {
+                            try {
+                                Credential credential =
+                                    result == null ? null : result.getCredential();
 
+                                if (credential == null) {
+                                    isSigningIn = false;
+                                    setGoogleLoginEnabled(true);
+                                    Toast.makeText(
+                                        MainActivity.this,
+                                        "لم تكتمل استجابة Google، حاول مرة أخرى",
+                                        Toast.LENGTH_LONG
+                                    ).show();
+                                    return;
+                                }
+
+                                handleGoogleCredential(credential);
+                            } catch (Exception e) {
+                                isSigningIn = false;
+                                setGoogleLoginEnabled(true);
+                                Toast.makeText(
+                                    MainActivity.this,
+                                    "حدث خطأ أثناء استقبال حساب Google",
+                                    Toast.LENGTH_LONG
+                                ).show();
+                            }
+                        });
+                    }
                     @Override
                     public void onError(GetCredentialException e) {
                         runOnUiThread(() -> {
