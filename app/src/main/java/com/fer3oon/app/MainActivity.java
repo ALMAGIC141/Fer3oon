@@ -1,10 +1,11 @@
 package com.fer3oon.app;
 
 import android.app.*;
-import android.os.*;
 import android.content.*;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.os.*;
 import android.view.*;
 import android.widget.*;
 
@@ -17,74 +18,263 @@ import java.util.concurrent.*;
 
 public class MainActivity extends Activity {
 
-    final String GOLD = "#E8C46A";
-    final String BG = "#080808";
-    final String CARD = "#191919";
+    // لوحة الألوان الملكية الفرعونية الفاخرة (Cinematic Obsidian Black & Royal Gold)
+    private static final String COLOR_BG_DEEP       = "#070707"; // أسود سبجي فائق العمق
+    private static final String COLOR_CARD_TOP      = "#1B1711"; // تدرج البطاقة العلوي
+    private static final String COLOR_CARD_BOTTOM   = "#0E0C09"; // تدرج البطاقة السفلي
+    private static final String COLOR_GOLD_ROYAL    = "#E6C364"; // ذهب ملكي ساطع
+    private static final String COLOR_GOLD_BRIGHT   = "#F7E6B8"; // ذهب مشرق للنصوص الرئيسية
+    private static final String COLOR_GOLD_BORDER   = "#6B582C"; // حدود ذهبية نحاسية رفيعة
+    private static final String COLOR_GOLD_BADGE_BG = "#2E2412"; // خلفية شارات الحالة
+    private static final String COLOR_TEXT_MUTED    = "#A69B89"; // نصوص رمادية ذهبية خافتة
+    private static final String COLOR_TEXT_SECONDARY= "#8A8172"; // نصوص التذييل والتوضيحات
+    private static final String COLOR_SUCCESS       = "#34D399"; // أخضر زمردي للربح
+    private static final String COLOR_DANGER        = "#F87171"; // أحمر ملكي هادئ للخسارة
 
     FirebaseAuth auth;
     CredentialManager credentialManager;
     ExecutorService executor;
     TextView status;
 
+    // دوال مساعدة لإنشاء عناصر واجهة المستخدم الملكية (UI Helpers)
     int dp(float n) {
-        return (int)(n * getResources().getDisplayMetrics().density);
+        return (int) (n * getResources().getDisplayMetrics().density);
     }
 
-    TextView makeText(String value, int size, String color) {
+    TextView makeText(String value, int size, String color, boolean bold) {
         TextView t = new TextView(this);
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(Color.parseColor(color));
-        t.setPadding(dp(10), dp(10), dp(10), dp(10));
+        if (bold) {
+            t.setTypeface(null, Typeface.BOLD);
+        }
         return t;
     }
 
-    Button makeButton(String label, String color, Runnable action) {
+    TextView makeText(String value, int size, String color) {
+        return makeText(value, size, color, false);
+    }
+
+    LinearLayout createRoyalCard(String titleText, String badgeText) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        card.setPadding(dp(16), dp(16), dp(16), dp(16));
+
+        GradientDrawable bg = new GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[]{Color.parseColor(COLOR_CARD_TOP), Color.parseColor(COLOR_CARD_BOTTOM)}
+        );
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1), Color.parseColor(COLOR_GOLD_BORDER));
+        card.setBackground(bg);
+        card.setElevation(dp(4));
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(0, 0, 0, dp(14));
+        card.setLayoutParams(params);
+
+        if (titleText != null && !titleText.isEmpty()) {
+            LinearLayout headerRow = new LinearLayout(this);
+            headerRow.setOrientation(LinearLayout.HORIZONTAL);
+            headerRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            headerRow.setGravity(Gravity.CENTER_VERTICAL);
+            headerRow.setPadding(0, 0, 0, dp(10));
+
+            TextView title = makeText(titleText, 16, COLOR_GOLD_BRIGHT, true);
+            LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+            );
+            headerRow.addView(title, titleParams);
+
+            if (badgeText != null && !badgeText.isEmpty()) {
+                TextView badge = makeText(badgeText, 11, COLOR_GOLD_ROYAL, true);
+                badge.setPadding(dp(8), dp(3), dp(8), dp(3));
+                GradientDrawable badgeBg = new GradientDrawable();
+                badgeBg.setColor(Color.parseColor(COLOR_GOLD_BADGE_BG));
+                badgeBg.setCornerRadius(dp(8));
+                badgeBg.setStroke(dp(1), Color.parseColor(COLOR_GOLD_BORDER));
+                badge.setBackground(badgeBg);
+                headerRow.addView(badge);
+            }
+
+            card.addView(headerRow);
+        }
+
+        return card;
+    }
+
+    Button createRoyalButton(String label, String bgColor, String textColor, String strokeColor, Runnable action) {
         Button b = new Button(this);
         b.setText(label);
-        b.setTextColor(Color.BLACK);
-        b.setTextSize(16);
+        b.setTextColor(Color.parseColor(textColor));
+        b.setTextSize(15);
         b.setTypeface(null, Typeface.BOLD);
-        b.setBackgroundTintList(
-            android.content.res.ColorStateList.valueOf(
-                Color.parseColor(color)
-            )
-        );
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor(bgColor));
+        bg.setCornerRadius(dp(12));
+        if (strokeColor != null) {
+            bg.setStroke(dp(1), Color.parseColor(strokeColor));
+        }
+        b.setBackground(bg);
         b.setOnClickListener(v -> action.run());
         return b;
     }
 
-    LinearLayout createRoot() {
+    LinearLayout setupRootScroll() {
         ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(Color.parseColor(COLOR_BG_DEEP));
+        scroll.setFillViewport(true);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        root.setPadding(dp(18), dp(20), dp(18), dp(20));
-        root.setBackgroundColor(Color.parseColor(BG));
+        root.setPadding(dp(18), dp(22), dp(18), dp(24));
+        root.setBackgroundColor(Color.parseColor(COLOR_BG_DEEP));
 
         scroll.addView(root);
         setContentView(scroll);
         return root;
     }
 
-    void addHeader(LinearLayout root) {
-        TextView title = makeText("👑 Fer3oon", 32, GOLD);
-        title.setGravity(Gravity.CENTER);
-        title.setTypeface(null, Typeface.BOLD);
-        root.addView(title);
+    void addRoyalHeader(LinearLayout root, String subtitleText) {
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER);
+        header.setPadding(0, dp(10), 0, dp(18));
 
-        TextView subtitle = makeText("منصة التداول الذكية", 15, "#C9B987");
-        subtitle.setGravity(Gravity.CENTER);
-        root.addView(subtitle);
+        TextView brand = makeText("🦁👑 Fer3oon", 30, COLOR_GOLD_BRIGHT, true);
+        brand.setGravity(Gravity.CENTER);
+        header.addView(brand);
+
+        TextView title = makeText("المنصة الملكية للتداول الذكي", 14, COLOR_GOLD_ROYAL, false);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, dp(3), 0, dp(2));
+        header.addView(title);
+
+        if (subtitleText != null && !subtitleText.isEmpty()) {
+            TextView sub = makeText(subtitleText, 12, COLOR_TEXT_MUTED, false);
+            sub.setGravity(Gravity.CENTER);
+            header.addView(sub);
+        }
+
+        TextView sandbox = makeText("بيئة تجريبية معزولة ومحمية • DEMO Sandbox", 11, COLOR_TEXT_SECONDARY, false);
+        sandbox.setGravity(Gravity.CENTER);
+        sandbox.setPadding(0, dp(4), 0, 0);
+        header.addView(sandbox);
+
+        root.addView(header);
+    }
+
+    void addMetricCell(LinearLayout row, String label, String value, String valueColor) {
+        LinearLayout cell = new LinearLayout(this);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER);
+        cell.setPadding(dp(6), dp(10), dp(6), dp(10));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#120F0B"));
+        bg.setCornerRadius(dp(10));
+        bg.setStroke(dp(1), Color.parseColor("#3D3219"));
+        cell.setBackground(bg);
+
+        TextView val = makeText(value, 18, valueColor, true);
+        val.setGravity(Gravity.CENTER);
+        cell.addView(val);
+
+        TextView lbl = makeText(label, 12, COLOR_TEXT_MUTED, false);
+        lbl.setGravity(Gravity.CENTER);
+        lbl.setPadding(0, dp(3), 0, 0);
+        cell.addView(lbl);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        params.setMargins(dp(3), 0, dp(3), 0);
+        row.addView(cell, params);
+    }
+
+    void addTimeframeChip(LinearLayout row, String text, boolean active) {
+        TextView chip = new TextView(this);
+        chip.setText(text);
+        chip.setTextSize(12);
+        chip.setTypeface(null, Typeface.BOLD);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(dp(12), dp(6), dp(12), dp(6));
+
+        GradientDrawable bg = new GradientDrawable();
+        if (active) {
+            chip.setTextColor(Color.parseColor("#14110C"));
+            bg.setColor(Color.parseColor(COLOR_GOLD_ROYAL));
+        } else {
+            chip.setTextColor(Color.parseColor(COLOR_TEXT_MUTED));
+            bg.setColor(Color.parseColor("#1A1610"));
+            bg.setStroke(dp(1), Color.parseColor("#3D3219"));
+        }
+        bg.setCornerRadius(dp(8));
+        chip.setBackground(bg);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(dp(4), 0, dp(4), 0);
+        row.addView(chip, params);
+    }
+
+    LinearLayout makeNavTile(String iconTitle, String subtitle, Runnable action) {
+        LinearLayout tile = new LinearLayout(this);
+        tile.setOrientation(LinearLayout.HORIZONTAL);
+        tile.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        tile.setGravity(Gravity.CENTER_VERTICAL);
+        tile.setPadding(dp(14), dp(12), dp(14), dp(12));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#15120D"));
+        bg.setCornerRadius(dp(12));
+        bg.setStroke(dp(1), Color.parseColor("#44371C"));
+        tile.setBackground(bg);
+
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        textCol.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+
+        TextView title = makeText(iconTitle, 15, COLOR_GOLD_BRIGHT, true);
+        textCol.addView(title);
+
+        TextView sub = makeText(subtitle, 12, COLOR_TEXT_MUTED, false);
+        sub.setPadding(0, dp(2), 0, 0);
+        textCol.addView(sub);
+
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        );
+        tile.addView(textCol, textParams);
+
+        TextView arrow = makeText("‹", 18, COLOR_GOLD_ROYAL, true);
+        arrow.setPadding(dp(4), 0, dp(4), 0);
+        tile.addView(arrow);
+
+        LinearLayout.LayoutParams tileParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        tileParams.setMargins(0, 0, 0, dp(8));
+        tile.setLayoutParams(tileParams);
+
+        tile.setOnClickListener(v -> action.run());
+        return tile;
     }
 
     @Override
     public void onCreate(Bundle saved) {
         super.onCreate(saved);
 
-        getWindow().setStatusBarColor(Color.BLACK);
-        getWindow().setNavigationBarColor(Color.BLACK);
+        getWindow().setStatusBarColor(Color.parseColor(COLOR_BG_DEEP));
+        getWindow().setNavigationBarColor(Color.parseColor(COLOR_BG_DEEP));
 
         auth = FirebaseAuth.getInstance();
         credentialManager = CredentialManager.create(getBaseContext());
@@ -98,53 +288,54 @@ public class MainActivity extends Activity {
     }
 
     void showLoginScreen() {
-        LinearLayout root = createRoot();
-        addHeader(root);
+        LinearLayout root = setupRootScroll();
+        addRoyalHeader(root, "بوابة الدخول الآمنة");
 
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setGravity(Gravity.CENTER);
-        panel.setPadding(dp(16), dp(25), dp(16), dp(25));
-        panel.setBackgroundColor(Color.parseColor(CARD));
+        LinearLayout card = createRoyalCard("تسجيل الدخول الملكي", "حساب معتمد");
 
-        LinearLayout.LayoutParams params =
-            new LinearLayout.LayoutParams(-1, -2);
-        params.setMargins(0, dp(45), 0, dp(20));
-        root.addView(panel, params);
-
-        TextView heading = makeText("مرحبًا بك في Fer3oon", 21, GOLD);
+        TextView heading = makeText("مرحبًا بك في منصة Fer3oon", 18, COLOR_GOLD_BRIGHT, true);
         heading.setGravity(Gravity.CENTER);
-        heading.setTypeface(null, Typeface.BOLD);
-        panel.addView(heading);
+        heading.setPadding(0, dp(8), 0, dp(6));
+        card.addView(heading);
 
         TextView note = makeText(
-            "سجّل الدخول باستخدام حساب Google للمتابعة",
-            15, "#FFFFFF"
+            "سجّل الدخول عبر حساب Google الموثق للوصول إلى لوحة القيادة التجريبية وإدارة مفاتيح API بأمان عالي.",
+            13,
+            COLOR_TEXT_MUTED,
+            false
         );
         note.setGravity(Gravity.CENTER);
-        panel.addView(note);
+        note.setPadding(0, 0, 0, dp(18));
+        card.addView(note);
 
-        Button login = makeButton(
-            "🌐 تسجيل الدخول باستخدام Google",
-            GOLD,
+        Button login = createRoyalButton(
+            "🌐  تسجيل الدخول باستخدام Google",
+            COLOR_GOLD_ROYAL,
+            "#14110C",
+            null,
             this::startGoogleSignIn
         );
-
-        LinearLayout.LayoutParams buttonParams =
-            new LinearLayout.LayoutParams(-1, dp(58));
-        buttonParams.topMargin = dp(20);
-        panel.addView(login, buttonParams);
-
-        TextView footer = makeText(
-            "تسجيل الدخول لا يشغّل محرك التداول",
-            13, "#C9B987"
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(52)
         );
-        footer.setGravity(Gravity.CENTER);
-        root.addView(footer);
+        card.addView(login, btnParams);
+
+        TextView securityBadge = makeText(
+            "🔒 الدخول محمي عبر Google Credential Manager\nالمحرك معطل بالكامل في هذه النسخة لأغراض التطوير والأمان",
+            12,
+            COLOR_TEXT_SECONDARY,
+            false
+        );
+        securityBadge.setGravity(Gravity.CENTER);
+        securityBadge.setPadding(0, dp(14), 0, dp(4));
+        card.addView(securityBadge);
+
+        root.addView(card);
     }
 
     void startGoogleSignIn() {
-        Toast.makeText(this, "جاري فتح تسجيل الدخول...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "جاري فتح تسجيل الدخول الموثق...", Toast.LENGTH_SHORT).show();
 
         GetGoogleIdOption googleOption =
             new GetGoogleIdOption.Builder()
@@ -238,192 +429,313 @@ public class MainActivity extends Activity {
         }
     }
 
-
-    LinearLayout dashboardCard(String heading) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(15), dp(16), dp(15));
-        card.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-
-        android.graphics.drawable.GradientDrawable bg =
-            new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{Color.parseColor("#202020"), Color.parseColor("#111111")}
-            );
-        bg.setCornerRadius(dp(18));
-        bg.setStroke(dp(1), Color.parseColor("#66512B"));
-        card.setBackground(bg);
-        card.setElevation(dp(3));
-
-        TextView title = makeText(heading, 17, GOLD);
-        title.setTypeface(null, Typeface.BOLD);
-        card.addView(title);
-
-        LinearLayout.LayoutParams params =
-            new LinearLayout.LayoutParams(-1, -2);
-        params.setMargins(0, dp(9), 0, dp(12));
-        return card;
-    }
-
-    void addMetric(LinearLayout row, String label, String value) {
-        LinearLayout item = new LinearLayout(this);
-        item.setOrientation(LinearLayout.VERTICAL);
-        item.setGravity(Gravity.CENTER);
-        item.setPadding(dp(5), dp(10), dp(5), dp(10));
-
-        TextView number = makeText(value, 20, "#FFFFFF");
-        number.setTypeface(null, Typeface.BOLD);
-        number.setGravity(Gravity.CENTER);
-        item.addView(number);
-
-        TextView caption = makeText(label, 12, "#B9A77A");
-        caption.setGravity(Gravity.CENTER);
-        item.addView(caption);
-
-        LinearLayout.LayoutParams params =
-            new LinearLayout.LayoutParams(0, -2, 1);
-        row.addView(item, params);
-    }
-
     void showDashboard() {
-        LinearLayout root = createRoot();
-        addHeader(root);
+        LinearLayout root = setupRootScroll();
+        addRoyalHeader(root, "لوحة التحكم وإدارة المحفظة الملكية");
 
-        TextView brand = makeText("لوحة القيادة الملكية", 14, "#B9A77A");
-        brand.setGravity(Gravity.CENTER);
-        root.addView(brand);
-
-        LinearLayout account = dashboardCard("👑  الحساب والمحفظة");
-        TextView demo = makeText("حساب التداول التجريبي DEMO", 15, "#FFFFFF");
-        account.addView(demo);
-
-        String accountState = "حساب DEMO غير مربوط";
+        // 1. بطاقة حساب التداول التجريبي (DEMO Account Status Card)
+        LinearLayout accountCard = createRoyalCard("👑  حساب التداول التجريبي", "DEMO Account");
+        String accountState = "حساب DEMO غير مربوط — أضف المفاتيح من الإعدادات";
+        String emailSnippet = "";
         try {
             String[] saved = SecureCredentials.load(this);
             if (saved != null && saved.length >= 3 &&
-                !saved[0].isEmpty() && !saved[1].isEmpty() &&
-                !saved[2].isEmpty()) {
-                accountState = "بيانات حساب DEMO محفوظة بشكل مشفّر";
+                saved[0] != null && !saved[0].trim().isEmpty() &&
+                saved[1] != null && !saved[1].trim().isEmpty() &&
+                saved[2] != null && !saved[2].trim().isEmpty()) {
+                accountState = "بيانات حساب DEMO مشفّرة عتادياً داخل AndroidKeyStore";
+                emailSnippet = "البريد المعتمد: " + saved[0];
             }
         } catch (Exception ignored) {}
 
-        TextView accountInfo = makeText(accountState, 13, "#C9B987");
-        account.addView(accountInfo);
+        TextView accountStateText = makeText(accountState, 13, COLOR_GOLD_ROYAL, false);
+        accountStateText.setPadding(0, 0, 0, dp(4));
+        accountCard.addView(accountStateText);
 
-        LinearLayout metrics = new LinearLayout(this);
-        metrics.setOrientation(LinearLayout.HORIZONTAL);
-        metrics.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        addMetric(metrics, "الرصيد", "—");
-        addMetric(metrics, "الأرباح", "—");
-        addMetric(metrics, "الخسائر", "—");
-        account.addView(metrics);
-        root.addView(account);
+        if (!emailSnippet.isEmpty()) {
+            TextView emailText = makeText(emailSnippet, 12, COLOR_TEXT_MUTED, false);
+            emailText.setPadding(0, 0, 0, dp(8));
+            accountCard.addView(emailText);
+        }
+        root.addView(accountCard);
 
-        LinearLayout chart = dashboardCard("📈  الرسم البياني");
-        TextView chartPlaceholder = makeText(
-            "بانتظار الاتصال بمصدر الأسعار\nستظهر حركة السوق هنا عند الربط",
-            14, "#AAAAAA"
+        // 2. أقسام الرصيد والأرباح والخسائر (Balance, Profit, and Loss)
+        LinearLayout balanceCard = createRoyalCard("💰  المؤشرات المالية (DEMO)", "غير مباشر");
+        LinearLayout metricsRow = new LinearLayout(this);
+        metricsRow.setOrientation(LinearLayout.HORIZONTAL);
+        metricsRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        metricsRow.setPadding(0, dp(4), 0, dp(4));
+
+        addMetricCell(metricsRow, "الرصيد الكلي", "—", COLOR_GOLD_BRIGHT);
+        addMetricCell(metricsRow, "صافي الأرباح", "—", COLOR_SUCCESS);
+        addMetricCell(metricsRow, "إجمالي الخسائر", "—", COLOR_DANGER);
+        balanceCard.addView(metricsRow);
+
+        TextView metricsNote = makeText(
+            "المؤشرات المالية الحية غير متوفرة في نسخة التطوير (بيانات تجريبية DEMO)",
+            11,
+            COLOR_TEXT_SECONDARY,
+            false
         );
-        chartPlaceholder.setGravity(Gravity.CENTER);
-        chartPlaceholder.setPadding(0, dp(25), 0, dp(25));
-        chart.addView(chartPlaceholder);
-        root.addView(chart);
+        metricsNote.setGravity(Gravity.CENTER);
+        metricsNote.setPadding(0, dp(8), 0, 0);
+        balanceCard.addView(metricsNote);
+        root.addView(balanceCard);
 
-        LinearLayout system = dashboardCard("⚙  حالة النظام");
-        status = makeText("● المحرك متوقف", 18, "#E8C46A");
-        status.setTypeface(null, Typeface.BOLD);
-        system.addView(status);
-
-        TextView connection = makeText(
-            "الاتصال بالوسيط: غير متصل",
-            13, "#BBBBBB"
+        // 3. الهوية البصرية الملكية (بدون أي مخطط سعري)
+        LinearLayout identityCard = createRoyalCard(
+            "👑  الهوية الملكية لـ Fer3oon",
+            "Royal Dashboard"
         );
-        system.addView(connection);
 
-        TextView mode = makeText(
-            "وضع التشغيل: DEMO فقط",
-            13, "#BBBBBB"
+        android.widget.ImageView identityImage =
+            new android.widget.ImageView(this);
+        identityImage.setImageResource(R.drawable.fer3oon_dashboard);
+        identityImage.setScaleType(
+            android.widget.ImageView.ScaleType.FIT_CENTER
         );
-        system.addView(mode);
-        root.addView(system);
-
-        LinearLayout controls = dashboardCard("التحكم في المحرك");
-
-        Button start = makeButton(
-            "▶  تشغيل المحرك",
-            "#D8B45D",
-            () -> status.setText("المحرك متوقف — التشغيل غير متاح في نسخة التطوير")
+        identityImage.setAdjustViewBounds(true);
+        identityImage.setContentDescription(
+            "التصميم الداخلي الملكي بالأسود والذهبي"
         );
-        controls.addView(start, new LinearLayout.LayoutParams(-1, dp(58)));
+        identityImage.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        identityCard.addView(identityImage);
+        root.addView(identityCard);
 
-        Button stop = makeButton(
+        // 4. حالة المحرك ومؤشر أمان DEMO (Engine Status & DEMO Safety Indicator)
+        LinearLayout engineCard = createRoyalCard("⚙  حالة المحرك وصمام الأمان", "وضع آمن");
+
+        TextView engineStatusText = makeText("● المحرك متوقف (آمن)", 15, COLOR_GOLD_ROYAL, true);
+        engineStatusText.setPadding(0, dp(2), 0, dp(6));
+        engineCard.addView(engineStatusText);
+
+        TextView safetyDetails = makeText(
+            "● وضع التشغيل: تجريبي حصرياً (DEMO-only)\n● صمام الأمان: التداول الحقيقي وإرسال الأوامر معطل برمجياً بالكامل\n● خدمة الخلفية TradingService: معطلة تماماً وغير مستدعاة",
+            12,
+            COLOR_TEXT_MUTED,
+            false
+        );
+        safetyDetails.setPadding(0, 0, 0, dp(14));
+        engineCard.addView(safetyDetails);
+
+        // 5. عناصر التحكم بالتشغيل والإيقاف (Start & Stop Controls)
+        LinearLayout controlsRow = new LinearLayout(this);
+        controlsRow.setOrientation(LinearLayout.HORIZONTAL);
+        controlsRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+
+        Button startBtn = createRoyalButton(
+            "▶  تشغيل المحرك (تجريبي)",
+            "#221B0B",
+            COLOR_GOLD_ROYAL,
+            COLOR_GOLD_BORDER,
+            () -> {
+                engineStatusText.setText("● المحرك متوقف — التشغيل معطل في وضع الأمان والتطوير");
+                Toast.makeText(this, "صمام الأمان: محرك التداول معطل تماماً لأغراض التطوير والأمان", Toast.LENGTH_SHORT).show();
+            }
+        );
+        LinearLayout.LayoutParams startParams = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        startParams.leftMargin = dp(6);
+        controlsRow.addView(startBtn, startParams);
+
+        Button stopBtn = createRoyalButton(
             "■  إيقاف المحرك",
-            "#B94A50",
-            () -> status.setText("● المحرك متوقف")
+            "#1E1010",
+            COLOR_DANGER,
+            "#5C2626",
+            () -> {
+                engineStatusText.setText("● المحرك متوقف (آمن)");
+                Toast.makeText(this, "تم تأكيد إيقاف المحرك في وضع الأمان", Toast.LENGTH_SHORT).show();
+            }
         );
-        LinearLayout.LayoutParams stopParams =
-            new LinearLayout.LayoutParams(-1, dp(58));
-        stopParams.topMargin = dp(10);
-        controls.addView(stop, stopParams);
-        root.addView(controls);
+        LinearLayout.LayoutParams stopParams = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        stopParams.rightMargin = dp(6);
+        controlsRow.addView(stopBtn, stopParams);
 
-        Button settings = makeButton(
-            "⚙  إعدادات حساب الوسيط",
-            "#D8B45D",
-            this::showAccountSettings
-        );
-        LinearLayout.LayoutParams settingsParams =
-            new LinearLayout.LayoutParams(-1, dp(55));
-        settingsParams.topMargin = dp(5);
-        root.addView(settings, settingsParams);
+        engineCard.addView(controlsRow);
+        root.addView(engineCard);
 
+        // 6. قسم التنقل والخدمات الملكية (Navigation)
+        LinearLayout navCard = createRoyalCard("⚡  الخدمات والإعدادات الملكية", "5 أقسام");
+
+        navCard.addView(makeNavTile("👤  الملف الشخصي", "معلومات الحساب والبريد المعتمد", this::showProfileDialog));
+        navCard.addView(makeNavTile("🔑  إعدادات وسيط التداول (DEMO)", "إدارة مفاتيح Capital.com المشفرة عتادياً", this::showAccountSettings));
+        navCard.addView(makeNavTile("📊  الإحصائيات والتحليلات", "ملخص الأداء والمؤشرات العامة", this::showStatisticsDialog));
+        navCard.addView(makeNavTile("📜  سجل النشاط والعمليات", "سجل الأحداث وتنبيهات الأمان", this::showActivityHistoryDialog));
+        navCard.addView(makeNavTile("🛡  إعدادات التطبيق والأمان", "خيارات الحماية ومعلومات الإصدار", this::showAppSettingsDialog));
+
+        root.addView(navCard);
+
+        // التذييل وبيانات الجلسة
         FirebaseUser user = auth.getCurrentUser();
         if (user != null && user.getEmail() != null) {
             TextView accountEmail = makeText(
-                "حساب Google: " + user.getEmail(),
-                12, "#B9A77A"
+                "حساب Google النشط: " + user.getEmail(),
+                12,
+                COLOR_TEXT_MUTED,
+                false
             );
             accountEmail.setGravity(Gravity.CENTER);
+            accountEmail.setPadding(0, dp(4), 0, dp(2));
             root.addView(accountEmail);
         }
 
         TextView disclaimer = makeText(
-            "نسخة تطوير — لا يتم إرسال أوامر تداول",
-            12, "#888888"
+            "نسخة تطوير خاصة (DEMO Sandbox) — محرك التداول معطل كلياً لحماية الأصول",
+            11,
+            COLOR_TEXT_SECONDARY,
+            false
         );
         disclaimer.setGravity(Gravity.CENTER);
+        disclaimer.setPadding(0, 0, 0, dp(12));
         root.addView(disclaimer);
+    }
+
+    void showProfileDialog() {
+        FirebaseUser user = auth.getCurrentUser();
+        String email = (user != null && user.getEmail() != null) ? user.getEmail() : "غير مسجل";
+        String uid = (user != null && user.getUid() != null) ? user.getUid() : "—";
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        content.setPadding(dp(20), dp(16), dp(20), dp(16));
+
+        content.addView(makeText("البريد الإلكتروني المعتمد:", 13, COLOR_GOLD_ROYAL, true));
+        content.addView(makeText(email, 14, "#FFFFFF", false));
+
+        TextView uidLabel = makeText("معرف المستخدم (UID):", 13, COLOR_GOLD_ROYAL, true);
+        uidLabel.setPadding(0, dp(10), 0, 0);
+        content.addView(uidLabel);
+        content.addView(makeText(uid, 12, COLOR_TEXT_MUTED, false));
+
+        TextView authType = makeText("نوع المصادقة: Google Identity / Firebase Auth", 12, COLOR_TEXT_SECONDARY, false);
+        authType.setPadding(0, dp(12), 0, 0);
+        content.addView(authType);
+
+        new AlertDialog.Builder(this)
+            .setTitle("الملف الشخصي الملكي")
+            .setView(content)
+            .setPositiveButton("إغلاق", null)
+            .setNeutralButton("تسجيل الخروج من Google", (d, w) -> signOutGoogle())
+            .show();
+    }
+
+    void showStatisticsDialog() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        content.setPadding(dp(20), dp(16), dp(20), dp(16));
+
+        content.addView(makeText("إحصائيات الأداء (نسخة التطوير)", 15, COLOR_GOLD_ROYAL, true));
+        TextView body = makeText(
+            "● إجمالي العمليات: غير متوفر في نسخة التطوير\n● نسبة الصفقات الناجحة: —\n● أقصى تراجع (Drawdown): —\n● التداول الحقيقي: معطل برمجياً ومحصور في وضع المحاكاة DEMO",
+            13,
+            "#FFFFFF",
+            false
+        );
+        body.setPadding(0, dp(8), 0, 0);
+        content.addView(body);
+
+        new AlertDialog.Builder(this)
+            .setTitle("الإحصائيات والتحليلات")
+            .setView(content)
+            .setPositiveButton("إغلاق", null)
+            .show();
+    }
+
+    void showActivityHistoryDialog() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        content.setPadding(dp(20), dp(16), dp(20), dp(16));
+
+        content.addView(makeText("سجل النشاط والأمان الأخير", 15, COLOR_GOLD_ROYAL, true));
+        TextView logs = makeText(
+            "● جلسة المستخدم: تم تسجيل الدخول الآمن بنجاح.\n● التشفير العتادي: مفاتيح التداول محمية بنظام AndroidKeyStore.\n● حالة المحرك: متوقف — التداول معطل برمجياً في وضع الأمان.\n● سجل عمليات التداول غير متاح في نسخة التطوير.",
+            13,
+            COLOR_TEXT_MUTED,
+            false
+        );
+        logs.setPadding(0, dp(8), 0, 0);
+        content.addView(logs);
+
+        new AlertDialog.Builder(this)
+            .setTitle("سجل النشاط")
+            .setView(content)
+            .setPositiveButton("إغلاق", null)
+            .show();
+    }
+
+    void showAppSettingsDialog() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        content.setPadding(dp(20), dp(16), dp(20), dp(16));
+
+        content.addView(makeText("إعدادات الأمان والتطبيق", 15, COLOR_GOLD_ROYAL, true));
+        TextView info = makeText(
+            "● التطبيق: Fer3oon Royal Trading Dashboard\n● الإصدار: 1.0 (DEMO Development Build)\n● معيار التشفير: AES-256-GCM عتادي معتمد\n● شبكة الاتصال: حركة المرور الصريحة (Cleartext) محظورة كلياً\n● الحماية: لا يتم تخزين مفاتيح الوسيط بنص صريح على الإطلاق",
+            13,
+            "#FFFFFF",
+            false
+        );
+        info.setPadding(0, dp(8), 0, 0);
+        content.addView(info);
+
+        new AlertDialog.Builder(this)
+            .setTitle("إعدادات التطبيق")
+            .setView(content)
+            .setPositiveButton("إغلاق", null)
+            .show();
     }
 
     void showAccountSettings() {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
-        form.setPadding(dp(20), dp(10), dp(20), dp(10));
         form.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        form.setPadding(dp(20), dp(12), dp(20), dp(12));
+
+        TextView intro = makeText(
+            "أدخل بيانات حساب Capital.com التجريبي (DEMO). سيتم تشفيرها عتادياً داخل AndroidKeyStore باستخدام AES-256-GCM ولن تخرج من جهازك.",
+            12,
+            COLOR_TEXT_MUTED,
+            false
+        );
+        intro.setPadding(0, 0, 0, dp(12));
+        form.addView(intro);
 
         EditText emailField = new EditText(this);
-        emailField.setHint("البريد الإلكتروني");
+        emailField.setHint("البريد الإلكتروني للوسيط (DEMO)");
+        emailField.setTextColor(Color.WHITE);
+        emailField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         emailField.setSingleLine(true);
         form.addView(emailField);
 
         EditText keyField = new EditText(this);
-        keyField.setHint("Capital.com API Key");
+        keyField.setHint("Capital.com DEMO API Key");
+        keyField.setTextColor(Color.WHITE);
+        keyField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         keyField.setSingleLine(true);
-        keyField.setInputType(129);
+        keyField.setInputType(129); // textPassword
         form.addView(keyField);
 
         EditText passwordField = new EditText(this);
-        passwordField.setHint("كلمة مرور API");
+        passwordField.setHint("كلمة مرور API (DEMO Password)");
+        passwordField.setTextColor(Color.WHITE);
+        passwordField.setHintTextColor(Color.parseColor(COLOR_TEXT_SECONDARY));
         passwordField.setSingleLine(true);
-        passwordField.setInputType(129);
+        passwordField.setInputType(129); // textPassword
         form.addView(passwordField);
 
         try {
             String[] saved = SecureCredentials.load(this);
-            if (saved != null) {
-                emailField.setText(saved[0]);
-                keyField.setText(saved[1]);
-                passwordField.setText(saved[2]);
+            if (saved != null && saved.length >= 3) {
+                if (saved[0] != null) emailField.setText(saved[0]);
+                if (saved[1] != null) keyField.setText(saved[1]);
+                if (saved[2] != null) passwordField.setText(saved[2]);
             }
         } catch (Exception e) {
             Toast.makeText(
@@ -434,15 +746,15 @@ public class MainActivity extends Activity {
         }
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-            .setTitle("إعدادات حساب DEMO")
+            .setTitle("إعدادات حساب الوسيط (DEMO)")
             .setView(form)
-            .setPositiveButton("حفظ مشفّر", null)
+            .setPositiveButton("حفظ مشفّر عتادياً", null)
             .setNeutralButton("تسجيل الخروج من Google", (d, w) -> signOutGoogle())
             .setNegativeButton("إلغاء", null)
             .create();
 
         dialog.setOnShowListener(v ->
-            dialog.getButton(-1).setOnClickListener(view -> {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(view -> {
                 String email = emailField.getText().toString().trim();
                 String key = keyField.getText().toString().trim();
                 String password = passwordField.getText().toString();
@@ -450,7 +762,7 @@ public class MainActivity extends Activity {
                 if (email.isEmpty() || key.isEmpty() || password.isEmpty()) {
                     Toast.makeText(
                         this,
-                        "أكمل بيانات الحساب",
+                        "يرجى إكمال جميع حقول بيانات الحساب",
                         Toast.LENGTH_SHORT
                     ).show();
                     return;
@@ -460,10 +772,11 @@ public class MainActivity extends Activity {
                     SecureCredentials.save(this, email, key, password);
                     Toast.makeText(
                         this,
-                        "تم حفظ بيانات DEMO بشكل مشفّر",
+                        "تم حفظ بيانات DEMO بشكل مشفّر داخل KeyStore",
                         Toast.LENGTH_LONG
                     ).show();
                     dialog.dismiss();
+                    showDashboard();
                 } catch (Exception e) {
                     Toast.makeText(
                         this,
