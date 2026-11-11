@@ -737,7 +737,7 @@ public class MainActivity extends Activity {
 
         content.addView(makeText("إعدادات الأمان والتطبيق", 15, COLOR_GOLD_ROYAL, true));
         TextView info = makeText(
-            "● التطبيق: Fer3oon Royal Trading Dashboard\n● الإصدار: 1.0 (DEMO Development Build)\n● معيار التشفير: AES-256-GCM عتادي معتمد\n● شبكة الاتصال: حركة المرور الصريحة (Cleartext) محظورة كلياً\n● الحماية: لا يتم تخزين مفاتيح الوسيط بنص صريح على الإطلاق",
+            "● التطبيق: Fer3oon Royal Trading Dashboard\n● الإصدار: 1.0 (DEMO Development Build)\n● وضع التشغيل: محاكاة تجريبية فقط (DEMO)\n● التداول الحقيقي: معطّل وغير متاح\n● بيانات الحساب: مخصصة لحساب Capital.com التجريبي\n● الأمان: لا تدخل بيانات حساب حقيقي في نسخة التطوير",
             13,
             "#FFFFFF",
             false
